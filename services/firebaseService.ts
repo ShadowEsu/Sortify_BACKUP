@@ -1,5 +1,5 @@
 
-import { ScanRecord, UserStats, BinCategory } from '../types';
+import { ScanRecord, UserStats, BinCategory, RankTier, CharacterGear } from '../types';
 
 /**
  * HACKATHON NOTE:
@@ -11,12 +11,21 @@ const STORAGE_KEY_USER = 'recyclexp_user';
 const STORAGE_KEY_SCANS = 'recyclexp_scans';
 const STORAGE_KEY_LEADERBOARD = 'recyclexp_leaderboard';
 
+// Default gear for mock users
+// Fixed: outfit must be one of 'POLYMER-PLATING' | 'FERROUS-FRAME' | 'MYCO-MESH' and added missing specialization.
+const DEFAULT_GEAR: CharacterGear = {
+  specialization: 'RECYCLE_SPECIALIST',
+  outfit: 'POLYMER-PLATING',
+  accessory: 'SOLAR-VISOR',
+  baseColor: '#10b981'
+};
+
 const INITIAL_MOCK_LEADERBOARD: UserStats[] = [
-  // Added missing 'missions' property to match UserStats interface
-  { uid: '1', username: 'ecowarrior', displayName: 'EcoWarrior', photoURL: 'https://picsum.photos/seed/1/100', points: 1250, scansCount: 125, level: 12, rank: 1, streak: 5, achievements: [], missions: [] },
-  { uid: '2', username: 'greenqueen', displayName: 'GreenQueen', photoURL: 'https://picsum.photos/seed/2/100', points: 980, scansCount: 98, level: 9, rank: 2, streak: 3, achievements: [], missions: [] },
-  { uid: '3', username: 'trashhero', displayName: 'TrashHero', photoURL: 'https://picsum.photos/seed/3/100', points: 850, scansCount: 85, level: 8, rank: 3, streak: 2, achievements: [], missions: [] },
-  { uid: '4', username: 'sortmaster', displayName: 'SortMaster', photoURL: 'https://picsum.photos/seed/4/100', points: 720, scansCount: 72, level: 7, rank: 4, streak: 1, achievements: [], missions: [] },
+  // Added missing 'email', 'missions', 'rankTier', 'rankDivision', and 'gear' properties to match UserStats interface
+  { uid: '1', username: 'ecowarrior', email: 'ecowarrior@example.com', displayName: 'EcoWarrior', photoURL: 'https://picsum.photos/seed/1/100', points: 1250, scansCount: 125, level: 12, rank: 1, streak: 5, achievements: [], missions: [], rankTier: RankTier.GOLD, rankDivision: 1, gear: DEFAULT_GEAR },
+  { uid: '2', username: 'greenqueen', email: 'greenqueen@example.com', displayName: 'GreenQueen', photoURL: 'https://picsum.photos/seed/2/100', points: 980, scansCount: 98, level: 9, rank: 2, streak: 3, achievements: [], missions: [], rankTier: RankTier.SILVER, rankDivision: 2, gear: DEFAULT_GEAR },
+  { uid: '3', username: 'trashhero', email: 'trashhero@example.com', displayName: 'TrashHero', photoURL: 'https://picsum.photos/seed/3/100', points: 850, scansCount: 85, level: 8, rank: 3, streak: 2, achievements: [], missions: [], rankTier: RankTier.SILVER, rankDivision: 3, gear: DEFAULT_GEAR },
+  { uid: '4', username: 'sortmaster', email: 'sortmaster@example.com', displayName: 'SortMaster', photoURL: 'https://picsum.photos/seed/4/100', points: 720, scansCount: 72, level: 7, rank: 4, streak: 1, achievements: [], missions: [], rankTier: RankTier.SILVER, rankDivision: 1, gear: DEFAULT_GEAR },
 ];
 
 export const firebaseService = {
@@ -25,10 +34,11 @@ export const firebaseService = {
     const saved = localStorage.getItem(STORAGE_KEY_USER);
     if (saved) return JSON.parse(saved);
     
-    // Added missing 'missions' property to match UserStats interface
+    // Added missing 'email', 'missions', 'rankTier', 'rankDivision', and 'gear' properties to match UserStats interface
     const newUser: UserStats = {
       uid: 'user_' + Math.random().toString(36).substr(2, 9),
       username: 'new_recycler',
+      email: 'new_recycler@example.com',
       displayName: 'New Recycler',
       photoURL: 'https://picsum.photos/seed/user/100',
       points: 0,
@@ -38,6 +48,9 @@ export const firebaseService = {
       streak: 0,
       achievements: [],
       missions: [],
+      rankTier: RankTier.IRON,
+      rankDivision: 1,
+      gear: DEFAULT_GEAR,
     };
     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(newUser));
     return newUser;

@@ -1,317 +1,231 @@
 
 import React, { useEffect, useState } from 'react';
-// Added Loader2 to imports from lucide-react
-import { Settings, History, Calendar, Star, ChevronRight, Award, LogOut, Flame, BarChart3, ShieldCheck, Target, Zap, Clock, Activity, Lock, Trophy, Medal, Sparkles, UserPlus, Palette, Eye, Ghost, Zap as Bolt, Waves, Loader2 } from 'lucide-react';
+import { LogOut, ShieldCheck, Zap, Trophy, Flame, CheckCircle2, Clock, Calendar, Palette, Shield, Layers, Box } from 'lucide-react';
 import { dbService } from '../services/dbService';
-import { UserStats, ScanRecord, Achievement } from '../types';
+import { UserStats, Mission, CharacterGear } from '../types';
 
-interface ProfileViewProps {
-  onLogout: () => void;
-  onNavigateHistory?: () => void;
-}
+const OUTFITS = [
+  { id: 'POLYMER-PLATING', label: 'POLYMER-PLATING', desc: 'Crafted from oceanic plastic waste.', color: '#60a5fa' },
+  { id: 'FERROUS-FRAME', label: 'FERROUS-FRAME', desc: 'Forged from salvaged construction steel.', color: '#94a3b8' },
+  { id: 'MYCO-MESH', label: 'MYCO-MESH', desc: 'Grown from regenerative compost cultures.', color: '#10b981' },
+] as const;
 
-const ProfileView: React.FC<ProfileViewProps> = ({ onLogout, onNavigateHistory }) => {
+const ACCESSORIES = [
+  { id: 'SOLAR-VISOR', label: 'SOLAR-VISOR' },
+  { id: 'KINETIC-CORE', label: 'KINETIC-CORE' },
+  { id: 'NEURAL-LINK', label: 'NEURAL-LINK' },
+] as const;
+
+const ProfileView: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const [user, setUser] = useState<UserStats | null>(null);
-  const [history, setHistory] = useState<ScanRecord[]>([]);
-  const [isUpdatingAvatar, setIsUpdatingAvatar] = useState(false);
-  const [selectedFlair, setSelectedFlair] = useState<string | undefined>(undefined);
-  const [isConfirmingFlair, setIsConfirmingFlair] = useState(false);
+  const [isCalibrating, setIsCalibrating] = useState(false);
+  const [tempGear, setTempGear] = useState<CharacterGear | null>(null);
 
   useEffect(() => {
-    dbService.getCurrentSessionUser().then(userData => {
-      if (userData) {
-        setUser(userData);
-        setSelectedFlair(userData.flair);
-        dbService.getScans(userData.uid).then(scans => setHistory(scans));
-      }
+    dbService.getCurrentSessionUser().then(u => {
+      setUser(u);
+      if (u) setTempGear(u.gear);
     });
   }, []);
 
-  if (!user) return <div className="h-screen bg-neutral-950 flex items-center justify-center text-emerald-500 font-black tracking-widest uppercase">RETRIEVING DOSSIER...</div>;
-
-  const xpRequiredForNextLevel = 200;
-  const xpInCurrentLevel = user.points % xpRequiredForNextLevel;
-  const progressPercent = (xpInCurrentLevel / xpRequiredForNextLevel) * 100;
-
-  const formatTime = (ts: number) => {
-    const d = new Date(ts);
-    return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const saveGear = async () => {
+    if (!tempGear) return;
+    const updated = await dbService.updateUser({ gear: tempGear });
+    setUser(updated);
+    setIsCalibrating(false);
   };
 
-  const AVATAR_SEEDS = ['Nova', 'Zenith', 'Echo', 'Apex', 'Shadow', 'Vector', 'Ghost', 'Rogue'];
-  
-  const FLAIR_OPTIONS = [
-    { id: 'visor', label: 'HOLO-VISOR', icon: Eye, reqLevel: 1 },
-    { id: 'aura', label: 'BIO-AURA', icon: Sparkles, reqLevel: 3 },
-    { id: 'wings', label: 'CYBER-WINGS', icon: Ghost, reqLevel: 5 },
-    { id: 'surge', label: 'SURGE-FIELD', icon: Bolt, reqLevel: 7 },
-  ];
+  if (!user) return <div className="h-screen flex items-center justify-center text-emerald-500 font-black">RETRIEVING_DOSSIER...</div>;
 
-  const changeAvatar = async (seed: string) => {
-    setIsUpdatingAvatar(true);
-    const newUrl = `https://api.dicebear.com/7.x/pixel-art/svg?seed=${seed}_${user.username}`;
-    try {
-      const updatedUser = await dbService.updateUser({ photoURL: newUrl });
-      setUser(updatedUser);
-    } catch (err) {
-      console.error("Avatar calibration failed", err);
-    } finally {
-      setIsUpdatingAvatar(false);
-    }
-  };
-
-  const confirmFlairUpdate = async () => {
-    setIsConfirmingFlair(true);
-    try {
-      const updatedUser = await dbService.updateUser({ flair: selectedFlair });
-      setUser(updatedUser);
-      alert("FLAIR STRAND SYNCED SUCCESSFULLY.");
-    } catch (err) {
-      console.error("Flair calibration failed", err);
-    } finally {
-      setIsConfirmingFlair(false);
-    }
-  };
-
-  const getFlairOverlayClass = (flairId?: string) => {
-    switch(flairId) {
-      case 'visor': return 'ring-4 ring-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.5)]';
-      case 'aura': return 'ring-4 ring-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.5)] animate-pulse';
-      case 'wings': return 'ring-4 ring-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.5)]';
-      case 'surge': return 'ring-4 ring-orange-500/50 shadow-[0_0_20px_rgba(249,115,22,0.5)] animate-bounce';
-      default: return '';
-    }
-  };
+  const dailies = user.missions.filter(m => !m.isWeekly);
+  const weeklies = user.missions.filter(m => m.isWeekly);
 
   return (
     <div className="min-h-screen bg-neutral-950 p-8 pb-32 font-gaming">
       <div className="max-w-md mx-auto">
-        {/* Header Section */}
-        <div className="flex justify-between items-center mb-12">
-           <div>
-             <h2 className="text-2xl font-black text-white uppercase tracking-tighter">OPERATIVE STATUS</h2>
-             <p className="text-[9px] font-black text-emerald-500/60 tracking-[0.3em] uppercase">ID: {user.uid.slice(0, 10)}</p>
-           </div>
-           <button onClick={onLogout} className="p-3 bg-neutral-900 rounded-2xl border border-white/5 text-neutral-500 hover:text-red-400 transition-colors">
-             <LogOut size={20} />
-           </button>
-        </div>
-
-        {/* Identity Section */}
-        <div className="flex flex-col items-center mb-10">
-          <div className="relative group">
-            <div className={`absolute -inset-2 bg-emerald-500 rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-opacity ${user.flair ? 'opacity-40' : ''}`} />
-            <img 
-              src={user.photoURL} 
-              className={`relative w-32 h-32 rounded-full border-4 border-neutral-950 shadow-2xl mb-6 object-cover bg-neutral-800 transition-all ${isUpdatingAvatar ? 'opacity-50' : 'opacity-100'} ${getFlairOverlayClass(user.flair)}`} 
-            />
-            {user.flair && (
-              <div className="absolute top-0 right-0 bg-white/10 backdrop-blur-md p-2 rounded-full border border-white/20 animate-bounce">
-                <Sparkles size={16} className="text-emerald-400" />
-              </div>
-            )}
-            <div className="absolute bottom-6 right-2 bg-emerald-500 text-black p-2 rounded-xl border-2 border-neutral-950 shadow-lg">
-              <ShieldCheck size={18} fill="currentColor" />
-            </div>
-          </div>
-          <h3 className="text-3xl font-black text-white uppercase tracking-tighter">SORTIFY <span className="text-emerald-500">{user.username}</span></h3>
-          <p className="text-[10px] text-neutral-500 font-black uppercase tracking-[0.4em] mt-2">Active Sortifier Corps</p>
-        </div>
-
-        {/* AVATAR RE-CALIBRATION */}
-        <div className="mb-10">
-          <h4 className="font-black text-white text-xs tracking-widest uppercase mb-6 flex items-center gap-3">
-            <Palette size={18} className="text-emerald-500" /> AVATAR STRANDS
-          </h4>
-          <div className="grid grid-cols-4 gap-2">
-            {AVATAR_SEEDS.map((seed) => (
-              <button 
-                key={seed}
-                onClick={() => changeAvatar(seed)}
-                disabled={isUpdatingAvatar}
-                className="aspect-square bg-neutral-900 rounded-xl border border-white/5 overflow-hidden hover:border-emerald-500/50 transition-all active:scale-95 disabled:opacity-50"
-              >
-                <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${seed}_${user.username}`} alt={seed} className="w-full h-full" />
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* FLAIR / ACCESSORIES SECTION */}
-        <div className="mb-10 bg-neutral-900/40 p-6 rounded-[2rem] border border-white/5">
-          <h4 className="font-black text-white text-xs tracking-widest uppercase mb-6 flex items-center gap-3">
-            <Zap size={18} className="text-emerald-500" /> FLAIR STRANDS
-          </h4>
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            {FLAIR_OPTIONS.map((flair) => {
-              const isLocked = user.level < flair.reqLevel;
-              const isSelected = selectedFlair === flair.id;
-              return (
-                <button
-                  key={flair.id}
-                  disabled={isLocked}
-                  onClick={() => setSelectedFlair(isSelected ? undefined : flair.id)}
-                  className={`relative p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${
-                    isSelected 
-                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400' 
-                    : isLocked 
-                    ? 'bg-black/20 border-white/5 text-neutral-700' 
-                    : 'bg-neutral-900 border-white/10 text-neutral-400 hover:border-white/20'
-                  }`}
-                >
-                  <flair.icon size={20} />
-                  <span className="text-[9px] font-black uppercase tracking-widest">{flair.label}</span>
-                  {isLocked && (
-                    <div className="absolute top-2 right-2">
-                      <Lock size={10} />
-                    </div>
-                  )}
-                  {isLocked && (
-                    <span className="text-[7px] font-bold text-neutral-600 uppercase mt-1">LVL {flair.reqLevel}</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          
-          <button
-            onClick={confirmFlairUpdate}
-            disabled={isConfirmingFlair || selectedFlair === user.flair}
-            className={`w-full py-4 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${
-              selectedFlair !== user.flair 
-              ? 'bg-emerald-500 text-black shadow-[0_5px_15px_rgba(52,211,153,0.3)] hover:scale-[1.02]' 
-              : 'bg-neutral-800 text-neutral-600 cursor-not-allowed'
-            }`}
-          >
-            {/* Fix: Loader2 is now correctly imported */}
-            {isConfirmingFlair ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
-            CONFIRM FLAIR CALIBRATION
+        <div className="flex justify-between items-center mb-10">
+          <h2 className="text-xl font-black text-white uppercase tracking-widest flex items-center gap-3">
+            <ShieldCheck className="text-emerald-500" /> OPERATIVE_ID
+          </h2>
+          <button onClick={onLogout} className="p-3 bg-red-500/10 text-red-500 rounded-2xl border border-red-500/20">
+            <LogOut size={20} />
           </button>
         </div>
 
-        {/* Level & XP Progression */}
-        <div className="glass rounded-[2rem] p-8 border-emerald-500/10 mb-8 relative overflow-hidden">
-          <div className="flex justify-between items-end mb-6">
-            <div>
-              <p className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.3em] mb-1">XP PROGRESSION</p>
-              <h4 className="text-4xl font-black text-white leading-none tracking-tight">LVL {user.level}</h4>
+        {/* CHARACTER DISPLAY SECTION */}
+        <div className="relative glass rounded-[3rem] p-8 border border-white/5 mb-10 overflow-hidden">
+          <div className="absolute inset-0 opacity-10" style={{ backgroundColor: user.gear.baseColor }} />
+          
+          <div className="flex flex-col items-center relative z-10">
+            <div className="relative mb-6">
+              <div className="absolute inset-0 blur-3xl rounded-full opacity-40 animate-pulse" style={{ backgroundColor: user.gear.baseColor }} />
+              <img src={user.photoURL} className="relative w-36 h-36 rounded-[2.5rem] border-4 border-neutral-900 shadow-2xl bg-neutral-900 object-cover" />
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-emerald-500 text-black px-6 py-1.5 rounded-2xl font-black text-[11px] uppercase shadow-[0_10px_20px_rgba(16,185,129,0.3)]">
+                  {user.rankTier} {user.rankDivision}
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-1">GLOBAL XP</p>
-              <p className="text-2xl font-black text-white leading-none tracking-tight">{user.points.toLocaleString()}</p>
+            
+            <h3 className="text-3xl font-black text-white uppercase tracking-tighter mb-1">{user.displayName}</h3>
+            <div className="flex flex-col items-center gap-2 mb-6">
+               <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.4em]">ACTIVE PERK:</span>
+                  <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">{user.gear.specialization}</span>
+               </div>
+               <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.4em]">GEAR_CLASS:</span>
+                  <span className="text-[9px] font-black px-2 py-0.5 rounded border border-white/10 uppercase tracking-widest text-neutral-300">
+                     {user.gear.outfit}
+                  </span>
+               </div>
             </div>
-          </div>
-          <div className="h-4 bg-neutral-800 rounded-full overflow-hidden mb-3 border border-white/5">
-            <div 
-              className="h-full bg-emerald-500 transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(52,211,153,0.8)]"
-              style={{ width: `${progressPercent}%` }}
-            />
+
+            <button 
+              onClick={() => setIsCalibrating(true)}
+              className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-2 text-[9px] font-black text-white uppercase tracking-widest hover:bg-white/10 transition-all"
+            >
+              <Palette size={14} /> CUSTOMIZE CHARACTER
+            </button>
           </div>
         </div>
 
-        {/* TACTICAL ACCOLADES (Badges Section) */}
+        {/* CHARACTER CUSTOMIZER MODAL */}
+        {isCalibrating && tempGear && (
+           <div className="fixed inset-0 z-[7000] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6 animate-in fade-in zoom-in duration-300">
+              <div className="w-full max-w-sm glass rounded-[3rem] p-8 border border-white/10 relative">
+                 <h2 className="text-xl font-black text-white uppercase tracking-tighter mb-8 flex items-center gap-3">
+                    <Shield className="text-emerald-500" /> CHARACTER_SETUP
+                 </h2>
+                 
+                 <div className="space-y-8 mb-10">
+                    <div>
+                       <div className="flex items-center gap-2 mb-4">
+                          <Layers size={14} className="text-neutral-500" />
+                          <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">RECYCLED OUTFIT STYLE</p>
+                       </div>
+                       <div className="grid grid-cols-1 gap-2">
+                          {OUTFITS.map((o) => (
+                             <button 
+                                key={o.id} onClick={() => setTempGear({ ...tempGear, outfit: o.id, baseColor: o.color })}
+                                className={`p-4 rounded-xl border transition-all text-left ${tempGear.outfit === o.id ? 'bg-white/10 border-white/40 scale-[1.02]' : 'bg-transparent border-white/5 opacity-50'}`}
+                             >
+                                <div className="flex justify-between items-center mb-1">
+                                   <span className="text-[10px] font-black text-white uppercase">{o.label}</span>
+                                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: o.color }} />
+                                </div>
+                                <p className="text-[8px] text-neutral-500 font-bold uppercase">{o.desc}</p>
+                             </button>
+                          ))}
+                       </div>
+                    </div>
+
+                    <div>
+                       <div className="flex items-center gap-2 mb-4">
+                          <Box size={14} className="text-neutral-500" />
+                          <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">TACTICAL ACCESSORY</p>
+                       </div>
+                       <div className="grid grid-cols-1 gap-2">
+                          {ACCESSORIES.map((a) => (
+                             <button 
+                                key={a.id} onClick={() => setTempGear({ ...tempGear, accessory: a.id })}
+                                className={`p-3 rounded-xl border text-[10px] font-black uppercase tracking-widest text-center ${tempGear.accessory === a.id ? 'bg-white/10 border-white/40' : 'bg-transparent border-white/5 opacity-50'}`}
+                             >
+                                {a.id}
+                             </button>
+                          ))}
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="flex gap-4">
+                    <button onClick={() => setIsCalibrating(false)} className="flex-1 py-4 rounded-2xl border border-white/5 text-[10px] font-black text-neutral-500 uppercase">ABORT</button>
+                    <button onClick={saveGear} className="flex-1 py-4 rounded-2xl bg-emerald-500 text-black text-[10px] font-black uppercase shadow-xl shadow-emerald-500/20">CONFIRM SYNC</button>
+                 </div>
+              </div>
+           </div>
+        )}
+
+        {/* PROGRESS CARDS */}
+        <div className="grid grid-cols-2 gap-4 mb-10">
+           <div className="bg-neutral-900/60 p-5 rounded-[2rem] border border-white/5">
+              <Zap size={20} className="text-emerald-500 mb-3" />
+              <p className="text-[14px] font-black text-white uppercase tabular-nums">{user.points.toLocaleString()}</p>
+              <p className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">TOTAL XP</p>
+           </div>
+           <div className="bg-neutral-900/60 p-5 rounded-[2rem] border border-white/5">
+              <Flame size={20} className="text-orange-500 mb-3" />
+              <p className="text-[14px] font-black text-white uppercase tabular-nums">{user.streak} DAYS</p>
+              <p className="text-[8px] font-black text-neutral-500 uppercase tracking-widest">ACTIVE STREAK</p>
+           </div>
+        </div>
+
+        {/* MISSIONS HUB */}
+        <div className="space-y-8 mb-10">
+            <div>
+                <h4 className="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                    <Clock size={16} className="text-emerald-500" /> DAILY SORTIES
+                </h4>
+                <div className="space-y-3">
+                    {dailies.map(m => (
+                        <div key={m.id} className="bg-neutral-900/60 p-4 rounded-2xl border border-white/5">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-[10px] font-black text-neutral-300 uppercase">{m.title}</span>
+                                <span className="text-[10px] font-black text-emerald-500">+{m.xpReward} XP</span>
+                            </div>
+                            <div className="h-2 bg-black rounded-full overflow-hidden mb-1">
+                                <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${(m.current/m.target)*100}%` }} />
+                            </div>
+                            <div className="flex justify-between text-[8px] font-black text-neutral-600 uppercase">
+                                <span>{m.current} / {m.target} UNITS</span>
+                                {m.completed && <CheckCircle2 size={10} className="text-emerald-500" />}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div>
+                <h4 className="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                    <Calendar size={16} className="text-blue-500" /> WEEKLY OPS
+                </h4>
+                <div className="space-y-3">
+                    {weeklies.map(m => (
+                        <div key={m.id} className="bg-neutral-900/60 p-5 rounded-2xl border border-blue-500/20">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-[10px] font-black text-white uppercase">{m.title}</span>
+                                <span className="text-[10px] font-black text-blue-400">+{m.xpReward} XP</span>
+                            </div>
+                            <div className="h-3 bg-black rounded-full overflow-hidden mb-1">
+                                <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${(m.current/m.target)*100}%` }} />
+                            </div>
+                            <div className="flex justify-between text-[8px] font-black text-neutral-600 uppercase">
+                                <span>{m.current} / {m.target} UNITS DEPLOYED</span>
+                                {m.completed && <CheckCircle2 size={10} className="text-blue-500" />}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+
+        {/* TACTICAL ACCOLADES */}
         <div className="mb-10">
-          <h4 className="font-black text-white text-xs tracking-widest uppercase mb-6 flex items-center gap-3">
-            <Trophy size={18} className="text-emerald-500" /> TACTICAL ACCOLADES
+          <h4 className="text-[11px] font-black text-white uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+            <Trophy size={16} className="text-emerald-500" /> TACTICAL ACCOLADES
           </h4>
-          <div className="grid grid-cols-3 gap-3">
-            {user.achievements.map((badge: Achievement) => {
-              const isUnlocked = !!badge.unlockedAt;
+          <div className="grid grid-cols-2 gap-4">
+            {user.achievements.map(a => {
+              const unlocked = !!a.unlockedAt;
               return (
-                <div 
-                  key={badge.id} 
-                  className={`relative aspect-square rounded-[1.5rem] border flex flex-col items-center justify-center p-3 transition-all ${
-                    isUnlocked 
-                    ? 'bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_15px_rgba(52,211,153,0.1)]' 
-                    : 'bg-neutral-900 border-white/5 opacity-40'
-                  }`}
-                >
-                  <div className={`text-2xl mb-2 transition-transform ${isUnlocked ? 'scale-110' : 'grayscale'}`}>
-                    {badge.icon}
+                <div key={a.id} className={`p-4 rounded-3xl border transition-all flex items-center gap-3 ${unlocked ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-neutral-900 border-white/5 opacity-40 grayscale'}`}>
+                  <div className="text-2xl">{a.icon}</div>
+                  <div>
+                    <h5 className="text-[10px] font-black text-white uppercase">{a.title}</h5>
+                    <p className="text-[8px] font-bold text-neutral-500 uppercase">{a.requirement} SCANS</p>
                   </div>
-                  <span className={`text-[8px] font-black uppercase tracking-widest text-center leading-tight ${isUnlocked ? 'text-white' : 'text-neutral-500'}`}>
-                    {badge.title}
-                  </span>
-                  {!isUnlocked && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-[1.5rem] backdrop-blur-[1px]">
-                      <Lock size={12} className="text-neutral-600" />
-                    </div>
-                  )}
-                  {isUnlocked && (
-                    <div className="absolute -top-1 -right-1">
-                      <Bolt size={10} className="text-emerald-400 fill-emerald-400 animate-pulse" />
-                    </div>
-                  )}
                 </div>
               );
             })}
           </div>
-          <p className="text-[8px] font-bold text-neutral-600 uppercase tracking-widest text-center mt-4 italic">
-            {user.achievements.filter(a => !!a.unlockedAt).length} / {user.achievements.length} MEDALS UNLOCKED
-          </p>
-        </div>
-
-        {/* Tactical History */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h4 className="font-black text-white text-xs tracking-widest uppercase flex items-center gap-3">
-               <History size={18} className="text-emerald-500" /> SORT LOGS
-            </h4>
-            {history.length > 3 && (
-              <button 
-                onClick={onNavigateHistory}
-                className="text-[9px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1 hover:text-white transition-colors"
-              >
-                VIEW ALL <ChevronRight size={14} />
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            {history.length === 0 ? (
-              <div className="bg-neutral-900/50 rounded-3xl p-10 text-center border border-dashed border-white/10">
-                 <p className="text-[10px] font-black text-neutral-600 uppercase tracking-widest">NO DEPLOYMENT DATA FOUND.</p>
-              </div>
-            ) : (
-              history.slice(0, 3).map((scan) => (
-                <div key={scan.id} className="bg-neutral-900/80 p-5 rounded-[2rem] border border-white/5 space-y-4 group hover:border-emerald-500/30 transition-all">
-                   <div className="flex items-center gap-4">
-                     <img src={scan.imageUrl} className="w-20 h-20 rounded-2xl object-cover border border-white/10" />
-                     <div className="flex-1">
-                       <div className="flex justify-between items-start mb-1">
-                         <h5 className="font-black text-white text-xs uppercase tracking-tight leading-tight">{scan.result.detectedItem}</h5>
-                         <span className="text-[10px] font-black text-emerald-400 whitespace-nowrap">+{scan.xpAwarded} XP</span>
-                       </div>
-                       
-                       <div className="flex items-center gap-2 mb-2">
-                         <span className={`text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest border ${
-                           scan.result.binCategory === 'recycle' ? 'border-blue-400 text-blue-400' :
-                           scan.result.binCategory === 'compost' ? 'border-emerald-400 text-emerald-400' : 'border-neutral-500 text-neutral-500'
-                         }`}>
-                           {scan.result.binCategory}
-                         </span>
-                         <div className="flex items-center gap-1 text-[8px] text-neutral-500 font-bold uppercase tracking-widest">
-                           <Activity size={10} className="text-emerald-500" />
-                           {Math.round(scan.result.confidence * 100)}% CONF
-                         </div>
-                       </div>
-                       
-                       <div className="flex items-center gap-1.5 text-[8px] text-neutral-600 font-bold uppercase tracking-widest">
-                         <Clock size={10} />
-                         {formatTime(scan.timestamp)}
-                       </div>
-                     </div>
-                   </div>
-                   
-                   <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
-                      <p className="text-[13px] text-neutral-200 font-medium italic leading-relaxed line-clamp-3">
-                        "{scan.result.explanation}"
-                      </p>
-                   </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>

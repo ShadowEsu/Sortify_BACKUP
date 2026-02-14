@@ -5,6 +5,27 @@ export enum BinCategory {
   RECYCLE = 'recycle'
 }
 
+export enum RankTier {
+  IRON = 'IRON',
+  BRONZE = 'BRONZE',
+  SILVER = 'SILVER',
+  GOLD = 'GOLD',
+  PLATINUM = 'PLATINUM',
+  DIAMOND = 'DIAMOND',
+  ASCENDANT = 'ASCENDANT',
+  IMMORTAL = 'IMMORTAL',
+  RADIANT = 'RADIANT'
+}
+
+export type Specialization = 'RECYCLE_SPECIALIST' | 'COMPOST_COMMANDER' | 'WASTE_WARDEN';
+
+export interface CharacterGear {
+  specialization: Specialization;
+  outfit: 'POLYMER-PLATING' | 'FERROUS-FRAME' | 'MYCO-MESH';
+  accessory: 'SOLAR-VISOR' | 'KINETIC-CORE' | 'NEURAL-LINK';
+  baseColor: string;
+}
+
 export interface Mission {
   id: string;
   title: string;
@@ -12,6 +33,7 @@ export interface Mission {
   current: number;
   xpReward: number;
   completed: boolean;
+  isWeekly?: boolean;
 }
 
 export interface Achievement {
@@ -20,6 +42,7 @@ export interface Achievement {
   icon: string;
   description: string;
   unlockedAt?: number;
+  requirement?: number; // scans needed
 }
 
 export interface ScanResult {
@@ -34,17 +57,21 @@ export interface ScanResult {
 export interface UserStats {
   uid: string;
   username: string;
+  email: string;
   displayName: string;
   photoURL: string;
   points: number;
   scansCount: number;
   level: number;
   rank: number;
+  rankTier: RankTier;
+  rankDivision: 1 | 2 | 3 | null;
   streak: number;
   lastScanDate?: string;
   achievements: Achievement[];
   missions: Mission[];
-  flair?: string; // New: selected holographic/special accessory
+  gear: CharacterGear;
+  flair?: string;
 }
 
 export interface ScanRecord {
