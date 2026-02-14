@@ -5,6 +5,15 @@ export enum BinCategory {
   RECYCLE = 'recycle'
 }
 
+export interface Mission {
+  id: string;
+  title: string;
+  target: number;
+  current: number;
+  xpReward: number;
+  completed: boolean;
+}
+
 export interface Achievement {
   id: string;
   title: string;
@@ -19,6 +28,7 @@ export interface ScanResult {
   confidence: number;
   explanation: string;
   disposalTips: string[];
+  funFact?: string;
 }
 
 export interface UserStats {
@@ -33,6 +43,8 @@ export interface UserStats {
   streak: number;
   lastScanDate?: string;
   achievements: Achievement[];
+  missions: Mission[];
+  flair?: string; // New: selected holographic/special accessory
 }
 
 export interface ScanRecord {
@@ -42,6 +54,8 @@ export interface ScanRecord {
   timestamp: number;
   result: ScanResult;
   xpAwarded: number;
+  isPendingSync?: boolean;
+  syncError?: string;
 }
 
 export interface BinLocation {
@@ -51,4 +65,11 @@ export interface BinLocation {
   lng: number;
   type: BinCategory;
   distance?: number;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  category: BinCategory;
 }

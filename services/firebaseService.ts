@@ -12,11 +12,11 @@ const STORAGE_KEY_SCANS = 'recyclexp_scans';
 const STORAGE_KEY_LEADERBOARD = 'recyclexp_leaderboard';
 
 const INITIAL_MOCK_LEADERBOARD: UserStats[] = [
-  // Added missing 'username', 'streak', and 'achievements' properties to match UserStats interface
-  { uid: '1', username: 'ecowarrior', displayName: 'EcoWarrior', photoURL: 'https://picsum.photos/seed/1/100', points: 1250, scansCount: 125, level: 12, rank: 1, streak: 5, achievements: [] },
-  { uid: '2', username: 'greenqueen', displayName: 'GreenQueen', photoURL: 'https://picsum.photos/seed/2/100', points: 980, scansCount: 98, level: 9, rank: 2, streak: 3, achievements: [] },
-  { uid: '3', username: 'trashhero', displayName: 'TrashHero', photoURL: 'https://picsum.photos/seed/3/100', points: 850, scansCount: 85, level: 8, rank: 3, streak: 2, achievements: [] },
-  { uid: '4', username: 'sortmaster', displayName: 'SortMaster', photoURL: 'https://picsum.photos/seed/4/100', points: 720, scansCount: 72, level: 7, rank: 4, streak: 1, achievements: [] },
+  // Added missing 'missions' property to match UserStats interface
+  { uid: '1', username: 'ecowarrior', displayName: 'EcoWarrior', photoURL: 'https://picsum.photos/seed/1/100', points: 1250, scansCount: 125, level: 12, rank: 1, streak: 5, achievements: [], missions: [] },
+  { uid: '2', username: 'greenqueen', displayName: 'GreenQueen', photoURL: 'https://picsum.photos/seed/2/100', points: 980, scansCount: 98, level: 9, rank: 2, streak: 3, achievements: [], missions: [] },
+  { uid: '3', username: 'trashhero', displayName: 'TrashHero', photoURL: 'https://picsum.photos/seed/3/100', points: 850, scansCount: 85, level: 8, rank: 3, streak: 2, achievements: [], missions: [] },
+  { uid: '4', username: 'sortmaster', displayName: 'SortMaster', photoURL: 'https://picsum.photos/seed/4/100', points: 720, scansCount: 72, level: 7, rank: 4, streak: 1, achievements: [], missions: [] },
 ];
 
 export const firebaseService = {
@@ -25,7 +25,7 @@ export const firebaseService = {
     const saved = localStorage.getItem(STORAGE_KEY_USER);
     if (saved) return JSON.parse(saved);
     
-    // Added missing 'username', 'streak', and 'achievements' properties to match UserStats interface
+    // Added missing 'missions' property to match UserStats interface
     const newUser: UserStats = {
       uid: 'user_' + Math.random().toString(36).substr(2, 9),
       username: 'new_recycler',
@@ -37,6 +37,7 @@ export const firebaseService = {
       rank: 100,
       streak: 0,
       achievements: [],
+      missions: [],
     };
     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(newUser));
     return newUser;
