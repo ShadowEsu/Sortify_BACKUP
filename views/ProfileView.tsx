@@ -1,38 +1,45 @@
 
 import React, { useEffect, useState } from 'react';
-import { LogOut, ShieldCheck, Zap, Trophy, Flame, CheckCircle2, Clock, Calendar, Palette, Shield, Layers, Box } from 'lucide-react';
+import { LogOut, ShieldCheck, Zap, Trophy, Flame, CheckCircle2, Clock, Calendar, Palette, Shield, Layers, Box, Fingerprint, RefreshCcw } from 'lucide-react';
 import { dbService } from '../services/dbService';
+import { soundService } from '../services/soundService';
 import { UserStats, Mission, CharacterGear } from '../types';
 
-const OUTFITS = [
-  { id: 'POLYMER-PLATING', label: 'POLYMER-PLATING', desc: 'Crafted from oceanic plastic waste.', color: '#60a5fa' },
-  { id: 'FERROUS-FRAME', label: 'FERROUS-FRAME', desc: 'Forged from salvaged construction steel.', color: '#94a3b8' },
-  { id: 'MYCO-MESH', label: 'MYCO-MESH', desc: 'Grown from regenerative compost cultures.', color: '#10b981' },
-] as const;
-
-const ACCESSORIES = [
-  { id: 'SOLAR-VISOR', label: 'SOLAR-VISOR' },
-  { id: 'KINETIC-CORE', label: 'KINETIC-CORE' },
-  { id: 'NEURAL-LINK', label: 'NEURAL-LINK' },
-] as const;
+const AVATARS = [
+  'https://api.dicebear.com/7.x/pixel-art/svg?seed=Alpha',
+  'https://api.dicebear.com/7.x/pixel-art/svg?seed=Bravo',
+  'https://api.dicebear.com/7.x/pixel-art/svg?seed=Charlie',
+  'https://api.dicebear.com/7.x/pixel-art/svg?seed=Delta',
+  'https://api.dicebear.com/7.x/pixel-art/svg?seed=Echo',
+  'https://api.dicebear.com/7.x/pixel-art/svg?seed=Foxtrot',
+  'https://api.dicebear.com/7.x/pixel-art/svg?seed=Golf',
+  'https://api.dicebear.com/7.x/pixel-art/svg?seed=Hotel',
+  'https://api.dicebear.com/7.x/pixel-art/svg?seed=India',
+];
 
 const ProfileView: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const [user, setUser] = useState<UserStats | null>(null);
   const [isCalibrating, setIsCalibrating] = useState(false);
-  const [tempGear, setTempGear] = useState<CharacterGear | null>(null);
+  const [selectedAvatar, setSelectedAvatar] = useState<string>('');
 
   useEffect(() => {
     dbService.getCurrentSessionUser().then(u => {
       setUser(u);
-      if (u) setTempGear(u.gear);
+      if (u) setSelectedAvatar(u.photoURL);
     });
   }, []);
 
-  const saveGear = async () => {
-    if (!tempGear) return;
-    const updated = await dbService.updateUser({ gear: tempGear });
+  const saveIdentity = async () => {
+    if (!selectedAvatar) return;
+    soundService.playSuccess();
+    const updated = await dbService.updateUser({ photoURL: selectedAvatar });
     setUser(updated);
     setIsCalibrating(false);
+  };
+
+  const startCalibration = () => {
+    soundService.playClick();
+    setIsCalibrating(true);
   };
 
   if (!user) return <div className="h-screen flex items-center justify-center text-emerald-500 font-black">RETRIEVING_DOSSIER...</div>;
@@ -47,7 +54,7 @@ const ProfileView: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
           <h2 className="text-xl font-black text-white uppercase tracking-widest flex items-center gap-3">
             <ShieldCheck className="text-emerald-500" /> OPERATIVE_ID
           </h2>
-          <button onClick={onLogout} className="p-3 bg-red-500/10 text-red-500 rounded-2xl border border-red-500/20">
+          <button onClick={() => {soundService.playClick(); onLogout();}} className="p-3 bg-red-500/10 text-red-500 rounded-2xl border border-red-500/20">
             <LogOut size={20} />
           </button>
         </div>
@@ -72,73 +79,50 @@ const ProfileView: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
                   <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">{user.gear.specialization}</span>
                </div>
                <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.4em]">GEAR_CLASS:</span>
+                  <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.4em]">UNIT_STATUS:</span>
                   <span className="text-[9px] font-black px-2 py-0.5 rounded border border-white/10 uppercase tracking-widest text-neutral-300">
-                     {user.gear.outfit}
+                     OPERATIVE_READY
                   </span>
                </div>
             </div>
 
             <button 
-              onClick={() => setIsCalibrating(true)}
+              onClick={startCalibration}
               className="px-8 py-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-2 text-[9px] font-black text-white uppercase tracking-widest hover:bg-white/10 transition-all"
             >
-              <Palette size={14} /> CUSTOMIZE CHARACTER
+              <RefreshCcw size={14} /> SYNC BIOMETRIC AVATAR
             </button>
           </div>
         </div>
 
-        {/* CHARACTER CUSTOMIZER MODAL */}
-        {isCalibrating && tempGear && (
+        {/* AVATAR SELECTOR MODAL */}
+        {isCalibrating && (
            <div className="fixed inset-0 z-[7000] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6 animate-in fade-in zoom-in duration-300">
               <div className="w-full max-w-sm glass rounded-[3rem] p-8 border border-white/10 relative">
                  <h2 className="text-xl font-black text-white uppercase tracking-tighter mb-8 flex items-center gap-3">
-                    <Shield className="text-emerald-500" /> CHARACTER_SETUP
+                    <Fingerprint className="text-emerald-500" /> IDENTITY_SYNC
                  </h2>
                  
-                 <div className="space-y-8 mb-10">
-                    <div>
-                       <div className="flex items-center gap-2 mb-4">
-                          <Layers size={14} className="text-neutral-500" />
-                          <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">RECYCLED OUTFIT STYLE</p>
-                       </div>
-                       <div className="grid grid-cols-1 gap-2">
-                          {OUTFITS.map((o) => (
-                             <button 
-                                key={o.id} onClick={() => setTempGear({ ...tempGear, outfit: o.id, baseColor: o.color })}
-                                className={`p-4 rounded-xl border transition-all text-left ${tempGear.outfit === o.id ? 'bg-white/10 border-white/40 scale-[1.02]' : 'bg-transparent border-white/5 opacity-50'}`}
-                             >
-                                <div className="flex justify-between items-center mb-1">
-                                   <span className="text-[10px] font-black text-white uppercase">{o.label}</span>
-                                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: o.color }} />
-                                </div>
-                                <p className="text-[8px] text-neutral-500 font-bold uppercase">{o.desc}</p>
-                             </button>
-                          ))}
-                       </div>
-                    </div>
-
-                    <div>
-                       <div className="flex items-center gap-2 mb-4">
-                          <Box size={14} className="text-neutral-500" />
-                          <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">TACTICAL ACCESSORY</p>
-                       </div>
-                       <div className="grid grid-cols-1 gap-2">
-                          {ACCESSORIES.map((a) => (
-                             <button 
-                                key={a.id} onClick={() => setTempGear({ ...tempGear, accessory: a.id })}
-                                className={`p-3 rounded-xl border text-[10px] font-black uppercase tracking-widest text-center ${tempGear.accessory === a.id ? 'bg-white/10 border-white/40' : 'bg-transparent border-white/5 opacity-50'}`}
-                             >
-                                {a.id}
-                             </button>
-                          ))}
-                       </div>
-                    </div>
+                 <div className="grid grid-cols-3 gap-3 mb-10">
+                    {AVATARS.map((avatar, idx) => (
+                       <button 
+                          key={idx} 
+                          onClick={() => {soundService.playClick(); setSelectedAvatar(avatar);}}
+                          className={`relative aspect-square rounded-2xl border-2 transition-all overflow-hidden ${selectedAvatar === avatar ? 'border-emerald-500 scale-105 shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'border-white/5 grayscale opacity-40'}`}
+                       >
+                          <img src={avatar} className="w-full h-full object-cover" />
+                          {selectedAvatar === avatar && (
+                            <div className="absolute inset-0 bg-emerald-500/10 flex items-center justify-center">
+                               <CheckCircle2 size={24} className="text-emerald-500" />
+                            </div>
+                          )}
+                       </button>
+                    ))}
                  </div>
 
                  <div className="flex gap-4">
-                    <button onClick={() => setIsCalibrating(false)} className="flex-1 py-4 rounded-2xl border border-white/5 text-[10px] font-black text-neutral-500 uppercase">ABORT</button>
-                    <button onClick={saveGear} className="flex-1 py-4 rounded-2xl bg-emerald-500 text-black text-[10px] font-black uppercase shadow-xl shadow-emerald-500/20">CONFIRM SYNC</button>
+                    <button onClick={() => {soundService.playClick(); setIsCalibrating(false);}} className="flex-1 py-4 rounded-2xl border border-white/5 text-[10px] font-black text-neutral-500 uppercase">ABORT</button>
+                    <button onClick={saveIdentity} className="flex-1 py-4 rounded-2xl bg-emerald-500 text-black text-[10px] font-black uppercase shadow-xl shadow-emerald-500/20">CONFIRM SYNC</button>
                  </div>
               </div>
            </div>

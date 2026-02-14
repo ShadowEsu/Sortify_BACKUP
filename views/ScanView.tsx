@@ -1,8 +1,9 @@
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Camera, RotateCcw, Loader2, CheckCircle2, AlertCircle, Zap, Target, Activity, Crosshair, Cpu, Sparkles, WifiOff, X, Trash2, Recycle, Leaf, ShieldAlert } from 'lucide-react';
+import { Camera, RotateCcw, Loader2, CheckCircle2, AlertCircle, Zap, Target, Activity, Crosshair, Cpu, Sparkles, WifiOff, X, Trash2, Recycle, Leaf, ShieldAlert, Sun, Maximize, Move } from 'lucide-react';
 import { geminiService } from '../services/geminiService';
 import { dbService } from '../services/dbService';
+import { soundService } from '../services/soundService';
 import { ScanResult, BinCategory, UserStats } from '../types';
 
 interface ScanViewProps {
@@ -19,8 +20,8 @@ const ScanView: React.FC<ScanViewProps> = ({ onScanSuccess }) => {
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [multiplierActive, setMultiplierActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [scanProgress, setScanProgress] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -36,7 +37,12 @@ const ScanView: React.FC<ScanViewProps> = ({ onScanSuccess }) => {
   const startCamera = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: { 
+          facingMode: 'environment', 
+          width: { ideal: 1280 }, 
+          height: { ideal: 720 },
+          frameRate: { ideal: 60 }
+        },
         audio: false,
       });
       setStream(mediaStream);
@@ -53,25 +59,34 @@ const ScanView: React.FC<ScanViewProps> = ({ onScanSuccess }) => {
 
   const capturePhoto = async () => {
     if (!videoRef.current || !canvasRef.current || isProcessing) return;
+    
+    soundService.playShutter();
     setIsProcessing(true);
     setError(null);
-    setScanProgress(0);
     setIsDuplicate(false);
     setMultiplierActive(false);
+    setProgress(0);
 
-    const progressInterval = setInterval(() => {
-      setScanProgress(prev => Math.min(prev + 15, 95));
+    // Dynamic progress simulation
+    const interval = setInterval(() => {
+      setProgress(p => {
+        if (p >= 95) return p;
+        const inc = Math.random() * 15;
+        return Math.min(p + inc, 98);
+      });
     }, 100);
 
     const canvas = canvasRef.current;
     const video = videoRef.current;
-    const targetWidth = 640;
+    
+    const targetWidth = 512;
     const targetHeight = (video.videoHeight / video.videoWidth) * targetWidth;
     canvas.width = targetWidth;
     canvas.height = targetHeight;
     const ctx = canvas.getContext('2d');
     ctx?.drawImage(video, 0, 0, targetWidth, targetHeight);
-    const base64Image = canvas.toDataURL('image/jpeg', 0.7);
+    
+    const base64Image = canvas.toDataURL('image/jpeg', 0.5);
 
     try {
       const user = await dbService.getCurrentSessionUser();
@@ -99,14 +114,17 @@ const ScanView: React.FC<ScanViewProps> = ({ onScanSuccess }) => {
         setMultiplierActive(saveResult.multiplierActive);
       }
       
-      setScanProgress(100);
-      clearInterval(progressInterval);
+      setProgress(100);
+      clearInterval(interval);
+      soundService.playSuccess();
+      
       setTimeout(() => {
         setResult(classification);
         if (onScanSuccess) onScanSuccess(classification.binCategory, classification.detectedItem, multiplierActive);
-      }, 300);
+      }, 150);
+      
     } catch (err: any) {
-      clearInterval(progressInterval);
+      clearInterval(interval);
       setError(err.message || 'ANALYSIS FAILURE');
     } finally {
       setIsProcessing(false);
@@ -124,7 +142,7 @@ const ScanView: React.FC<ScanViewProps> = ({ onScanSuccess }) => {
   if (result) {
     const theme = getCategoryTheme(result.binCategory);
     return (
-      <div className="min-h-screen bg-neutral-950 p-6 pb-32 animate-in fade-in zoom-in duration-300">
+      <div className="min-h-screen bg-neutral-950 p-6 pb-32 animate-in fade-in zoom-in duration-100">
         <div className="max-w-md mx-auto">
           <div className="flex items-center gap-4 mb-6">
             <div className={`p-3 rounded-2xl border transition-all ${isDuplicate ? 'bg-orange-500/10 border-orange-500/20' : isOnline ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-orange-500/10 border-orange-500/20'}`}>
@@ -173,7 +191,7 @@ const ScanView: React.FC<ScanViewProps> = ({ onScanSuccess }) => {
                 <div className={`p-8 rounded-[2.5rem] border-2 mb-8 text-center transition-all relative overflow-hidden group ${theme.bg} ${theme.border} ${theme.glow}`}>
                   <p className="text-[12px] font-black text-neutral-400 uppercase tracking-[0.5em] mb-6 relative z-10">PHYSICAL ACTION REQUIRED</p>
                   <div className="flex flex-col items-center justify-center gap-4 relative z-10">
-                    <div className={`p-6 rounded-[2rem] bg-black/40 border-2 transition-transform duration-700 group-hover:scale-110 ${theme.border}`}>
+                    <div className={`p-6 rounded-[2rem] bg-black/40 border-2 transition-transform duration-500 group-hover:scale-105 ${theme.border}`}>
                       <theme.icon size={64} className={theme.color} />
                     </div>
                     <div className="space-y-1">
@@ -202,7 +220,7 @@ const ScanView: React.FC<ScanViewProps> = ({ onScanSuccess }) => {
           </div>
 
           <button
-            onClick={() => {setResult(null); startCamera();}}
+            onClick={() => {soundService.playClick(); setResult(null); startCamera();}}
             className={`w-full mt-8 font-black font-gaming py-5 rounded-[2rem] flex items-center justify-center gap-4 transition-all shadow-xl active:scale-95 text-xs uppercase tracking-[0.4em] bg-emerald-500 hover:bg-emerald-400 text-black`}
           >
             <RotateCcw size={20} />
@@ -216,15 +234,61 @@ const ScanView: React.FC<ScanViewProps> = ({ onScanSuccess }) => {
   return (
     <div className="relative h-screen bg-black overflow-hidden font-gaming">
       <video ref={videoRef} autoPlay playsInline className="absolute inset-0 w-full h-full object-cover opacity-70" />
+      
+      {/* HUD OVERLAYS */}
       <div className="absolute inset-16 border rounded-[3rem] border-white/5 transition-colors duration-500">
           <div className="absolute -top-1 -left-1 w-12 h-12 border-t-[4px] border-l-[4px] border-emerald-500 rounded-tl-2xl"></div>
           <div className="absolute -top-1 -right-1 w-12 h-12 border-t-[4px] border-r-[4px] border-emerald-500 rounded-tr-2xl"></div>
           <div className="absolute -bottom-1 -left-1 w-12 h-12 border-b-[4px] border-l-[4px] border-emerald-500 rounded-bl-2xl"></div>
           <div className="absolute -bottom-1 -right-1 w-12 h-12 border-b-[4px] border-r-[4px] border-emerald-500 rounded-br-2xl"></div>
+          
           {isProcessing && (
-            <div className="absolute left-0 right-0 h-[3px] bg-emerald-400 shadow-[0_0_20px_rgba(52,211,153,1)] animate-[scan_1.5s_ease-in-out_infinite]" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 rounded-[3rem]">
+               <div className="text-6xl font-black text-white tabular-nums mb-4">{Math.round(progress)}%</div>
+               <div className="text-[10px] font-black text-emerald-500 tracking-[0.5em] uppercase animate-pulse">ANALYZING_ITEM_DENSITY</div>
+               <div className="w-48 h-1 bg-white/10 rounded-full mt-6 overflow-hidden">
+                  <div className="h-full bg-emerald-500 transition-all duration-100" style={{ width: `${progress}%` }} />
+               </div>
+            </div>
+          )}
+
+          {!isProcessing && (
+            <div className="absolute top-10 left-10 right-10 flex flex-col gap-4 pointer-events-none">
+              <div className="flex items-center gap-3 bg-black/60 backdrop-blur-xl p-3 rounded-2xl border border-white/10 animate-in slide-in-from-top-4 duration-500">
+                <Sun size={14} className="text-yellow-400" />
+                <span className="text-[8px] font-black text-white/60 uppercase tracking-widest">ENHANCED_LIGHTING_ACTIVE</span>
+              </div>
+            </div>
           )}
       </div>
+
+      {/* SCANNING INSTRUCTIONS */}
+      {!isProcessing && !result && (
+        <div className="absolute top-32 left-0 right-0 px-10 flex flex-col items-center pointer-events-none">
+          <div className="bg-black/80 backdrop-blur-2xl border border-white/10 p-6 rounded-[2.5rem] w-full max-w-xs space-y-4 shadow-2xl animate-in fade-in slide-in-from-bottom-10 duration-700">
+            <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] text-center mb-2">SCAN_PROTOCOL</h4>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <Maximize size={16} className="text-neutral-500" />
+                <p className="text-[9px] font-black text-neutral-300 uppercase">CENTER OBJECT IN HUD</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Sun size={16} className="text-neutral-500" />
+                <p className="text-[9px] font-black text-neutral-300 uppercase">AVOID DARK SHADOWS</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Move size={16} className="text-neutral-500" />
+                <p className="text-[9px] font-black text-neutral-300 uppercase">KEEP DEVICE STEADY</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isProcessing && (
+        <div className="absolute left-0 right-0 h-[8px] bg-emerald-400 shadow-[0_0_40px_rgba(52,211,153,1)] animate-[scan_0.4s_linear_infinite] z-20" />
+      )}
+
       <div className="absolute inset-0 flex flex-col pointer-events-none">
         <div className="flex-1" />
         <div className="bg-gradient-to-t from-black via-black/90 to-transparent flex flex-col items-center justify-center px-10 pb-36 pointer-events-auto">
@@ -245,11 +309,12 @@ const ScanView: React.FC<ScanViewProps> = ({ onScanSuccess }) => {
           </button>
         </div>
       </div>
+      
       <style>{`
         @keyframes scan {
           0% { top: 0%; opacity: 0; }
-          20% { opacity: 1; }
-          80% { opacity: 1; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
           100% { top: 100%; opacity: 0; }
         }
       `}</style>

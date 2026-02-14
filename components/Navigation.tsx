@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Camera, MapPin, Trophy, User, Zap } from 'lucide-react';
+import { soundService } from '../services/soundService';
 
 interface NavigationProps {
   currentView: string;
@@ -16,6 +17,11 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onNavigate }) => {
     { id: 'instascan', icon: Zap, label: 'INSTASCAN' },
   ];
 
+  const handleNav = (id: string) => {
+    soundService.playNav();
+    onNavigate(id);
+  };
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-neutral-950/90 backdrop-blur-2xl border-t border-white/10 px-4 pb-8 pt-4 flex justify-between items-center z-[3000] safe-bottom shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
       {tabs.map((tab) => {
@@ -24,7 +30,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onNavigate }) => {
         return (
           <button
             key={tab.id}
-            onClick={() => onNavigate(tab.id)}
+            onClick={() => handleNav(tab.id)}
             className={`flex flex-col items-center gap-2 transition-all relative group flex-1 ${
               isActive ? 'text-emerald-400' : 'text-neutral-500 hover:text-neutral-300'
             }`}
