@@ -2,6 +2,7 @@
 
 Sortify is a gamified web application that uses AI-powered image recognition to help users correctly sort waste into Recycle, Compost, or Landfill bins.
 By turning sustainability into a game, Sortify educates users while encouraging real-world environmental impact.
+
 🎮 What the Game Offers
 
 📸 AI Waste Scanning
@@ -117,8 +118,8 @@ SORTIFY/
 ├── SORTIFY_README.md
 └── ATTRIBUTIONS.md
 
-🚀 How to Run the Project
-Backend
+**🚀 How to Run the Project
+Backend**
 source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn main:app --reload
