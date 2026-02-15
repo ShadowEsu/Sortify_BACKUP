@@ -1,31 +1,154 @@
+**🌱 Sortify — AI-Powered Waste Sorting Game**
 
-# RecycleXP ♻️
+Sortify is a gamified web application that uses AI-powered image recognition to help users correctly sort waste into Recycle, Compost, or Landfill bins.
+By turning sustainability into a game, Sortify educates users while encouraging real-world environmental impact.
+🎮 What the Game Offers
 
-RecycleXP is a high-fidelity hackathon project built to revolutionize domestic waste management through AI and gamification.
+📸 AI Waste Scanning
+Users upload or capture an image of an item
+A pretrained AI model analyzes the object
+The system predicts the correct bin:
+♻️ Recycle
+🌱 Compost
+🗑️ Landfill
+A confidence score (%) and human-readable explanation are returned
 
-## Features
-- **AI Classification**: Instantly identify waste types (Recycle, Compost, Waste) using Gemini 3 Flash.
-- **Gamification**: Earn +1 XP per scan, level up, and climb the leaderboard.
-- **Bin Finder**: Locate nearby specialized waste disposal bins based on geolocation.
-- **User Profiles**: Track your environmental impact over time.
+🏆 Points & Leaderboard System
++1 point awarded per successful scan
+Real-time leaderboard ranks users globally
+Encourages consistency and friendly competition
 
-## Setup Instructions
+🗺️ Smart Bin Locator
+Uses location data to show nearby disposal bins
+Supports recycling, compost, and waste bins
+Integrated directly into the app for convenience
 
-### Environment Variables
-To enable AI classification, you must provide a valid Gemini API Key:
-```env
-API_KEY=your_gemini_api_key_here
-```
+👤 User Profiles
+Secure login system
+View total points, scan history, and rank
+Tracks environmental impact over time
 
-### Production Implementation Plan
-1. **Authentication**: Swap the mock `firebaseService` auth with `Firebase Auth` (Anonymous or Social).
-2. **Database**: Implement `Firestore` for storing `ScanRecord` collections.
-3. **Storage**: Use `Firebase Storage` for the `base64Image` uploads.
-4. **Maps**: Replace the mock map with `Google Maps React` and query `OpenStreetMap` for real bin data.
+🧠 Educational Impact
+Explains why an item belongs in a specific bin
+Helps users learn sustainable habits, not just score points
 
-## Tech Stack
-- **Framework**: React 18 (SPA with custom view routing)
-- **AI**: Google GenAI SDK (Gemini 3 Flash)
-- **Styling**: Tailwind CSS
-- **Icons**: Lucide React
-- **Persistence**: LocalStorage (Mock for demo)
+🛒 Additional Products & Upgrades (Planned)
+These are optional enhancements designed for future expansion
+
+💎 Sortify+ (Premium)
+Detailed scan history analytics
+Environmental impact breakdown (CO₂ saved, waste diverted)
+Advanced AI confidence explanations
+
+🏫 Institutional Edition
+Custom leaderboards for schools or organizations
+Admin dashboards
+CSV data export for sustainability reporting
+
+🧺 Smart Bin Integration (Hardware Add-on)
+Ultrasonic bin fill-level tracking
+Real-time “bin full” status
+Optimized pickup routing (future scope)
+
+🧩 System Architecture Overview
+Frontend (React + Vite)
+        ↓ API Requests
+Backend (FastAPI)
+        ↓
+SQLite Database
+        ↓
+AI Model + External APIs
+
+🛠️ Technology Stack
+
+Frontend
+React (TypeScript)
+Vite (fast development & builds)
+Tailwind CSS
+React Router (page navigation)
+Backend
+FastAPI (Python)
+Uvicorn (ASGI server)
+Pydantic (data validation)
+RESTful API design
+Database
+SQLite
+Lightweight
+
+Perfect for hackathons & prototypes
+Stores users, scans, points, leaderboard data
+AI & APIs
+
+Google Gemini API – object recognition & explanation
+
+Google Maps API – bin location mapping
+
+(Optional fallback: OpenStreetMap)
+
+🔐 Authentication & Security
+Token-based authentication
+Firebase Auth support (optional / hybrid)
+API keys stored securely via environment variables
+No secrets committed to GitHub
+
+🔑 Environment Variables
+Create a .env file in the backend root:
+GEMINI_API_KEY=your_gemini_api_key
+GOOGLE_MAPS_API_KEY=your_google_maps_key
+DATABASE_URL=sqlite:///sortify.db
+⚠️ Never commit .env files to version control
+
+📂 Project Structure (Simplified)
+SORTIFY/
+├── frontend/
+│   ├── src/
+│   ├── pages/
+│   ├── components/
+│   └── vite.config.ts
+│
+├── backend/
+│   ├── main.py
+│   ├── models.py
+│   ├── database.py
+│   └── auth.py
+│
+├── .venv/
+├── package.json
+├── SORTIFY_README.md
+└── ATTRIBUTIONS.md
+
+🚀 How to Run the Project
+Backend
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+
+Backend runs at:
+http://127.0.0.1:8000
+
+Frontend
+npm install
+npm run dev
+Frontend runs at:
+http://localhost:5173
+
+🧪 API Example
+Scan Item
+POST /scan
+{
+  "image_base64": "...",
+  "lat": 37.7749,
+  "lng": -122.4194
+}
+Response
+{
+  "detected_item": "plastic bottle",
+  "bin_category": "recycle",
+  "confidence": 0.92,
+  "explanation": "Plastic bottles made of PET are recyclable",
+  "new_user_points": 42
+}
+
+🌍 Mission Statement
+Sortify exists to make sustainability simple, educational, and rewarding.
+By combining AI, gamification, and real-world data, we empower people to make smarter waste decisions every day.
