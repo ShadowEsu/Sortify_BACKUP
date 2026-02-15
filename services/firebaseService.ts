@@ -1,6 +1,7 @@
 
 import { ScanRecord, UserStats, BinCategory, RankTier, CharacterGear } from '../types';
 
+
 /**
  * HACKATHON NOTE:
  * This service is designed to be swapped with actual Firebase SDK calls.

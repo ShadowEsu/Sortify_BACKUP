@@ -5,7 +5,7 @@ import { ScanResult, BinCategory } from "../types";
 export const geminiService = {
   classifyWaste: async (base64Image: string): Promise<ScanResult> => {
     // Corrected initialization: use named parameter and direct process.env.API_KEY access
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     
     const imagePart = {
       inlineData: {
