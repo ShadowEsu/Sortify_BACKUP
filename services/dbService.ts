@@ -13,10 +13,10 @@ const DEFAULT_GEAR: CharacterGear = {
 };
 
 const SCAN_ACCOLADES: Achievement[] = [
-  { id: 'bronze_accolade', title: 'BRONZE ACCOLADE', icon: '🥉', description: 'Complete 100 tactical scans.', requirement: 100 },
-  { id: 'silver_accolade', title: 'SILVER ACCOLADE', icon: '🥈', description: 'Complete 250 tactical scans.', requirement: 250 },
-  { id: 'gold_accolade', title: 'GOLD ACCOLADE', icon: '🥇', description: 'Complete 500 tactical scans.', requirement: 500 },
-  { id: 'plat_accolade', title: 'PLATINUM ACCOLADE', icon: '💎', description: 'Complete 1000 tactical scans.', requirement: 1000 },
+  { id: 'bronze_accolade', title: 'BRONZE RANKED', icon: '🥉', description: 'Complete 100 tactical scans.', requirement: 100 },
+  { id: 'silver_accolade', title: 'SILVER RANKED', icon: '🥈', description: 'Complete 250 tactical scans.', requirement: 250 },
+  { id: 'gold_accolade', title: 'GOLD RANKED', icon: '🥇', description: 'Complete 500 tactical scans.', requirement: 500 },
+  { id: 'plat_accolade', title: 'DIAMOND RANKED', icon: '💎', description: 'Complete 1000 tactical scans.', requirement: 1000 },
 ];
 
 const INITIAL_MISSIONS: Mission[] = [
